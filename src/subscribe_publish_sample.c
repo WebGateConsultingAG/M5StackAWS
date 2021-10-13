@@ -249,15 +249,22 @@ void aws_iot_task(void *param) {
         ESP_LOGE(TAG, "Unable to set Auto Reconnect to true - %d", rc);
         abort();
     }
-    #define ACTION_TOPIC_LEN (strlen(CONFIG_AWS_EXAMPLE_CLIENT_ID)+8)
+    ESP_LOGI(TAG, "Pre ACTION Registry");
+    
+    #define ACTION_TOPIC_LEN (strlen(CONFIG_AWS_EXAMPLE_CLIENT_ID)+9)
     #define TOPIC_LEN_S (strlen(CONFIG_AWS_EXAMPLE_CLIENT_ID)+12)
+    ESP_LOGI(TAG, "PRE prefill %d",ACTION_TOPIC_LEN);
 
     char TOPIC_ACTION[ACTION_TOPIC_LEN];
-    snprintf(TOPIC_ACTION,"actions/%s",ACTION_TOPIC_LEN,CONFIG_AWS_EXAMPLE_CLIENT_ID);
-    const int TOPIC_ACTION_LEN = strlen(TOPIC_ACTION);
+    ESP_LOGI(TAG, "PRE prefill S1");
+    snprintf(TOPIC_ACTION,ACTION_TOPIC_LEN,"actions/%s",CONFIG_AWS_EXAMPLE_CLIENT_ID);
+    ESP_LOGI(TAG, "PRE prefill S2");
+    const int TOPIC_ACTION_LEN = strlen(&TOPIC_ACTION);
 
-    const char *TOPIC[TOPIC_LEN_S];
-    snprintf(TOPIC,"main_topic/%s",TOPIC_LEN_S,CONFIG_AWS_EXAMPLE_CLIENT_ID);
+    ESP_LOGI(TAG, "Post ACTION Registry");
+    
+    const char TOPIC[TOPIC_LEN_S];
+    snprintf(TOPIC,TOPIC_LEN_S,"main_topic/%s",CONFIG_AWS_EXAMPLE_CLIENT_ID);
     const int TOPIC_LEN = strlen(TOPIC);
 
     ESP_LOGI(TAG, "Subscribing... to %s", TOPIC_ACTION);
