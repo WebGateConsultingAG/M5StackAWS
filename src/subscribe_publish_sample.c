@@ -294,10 +294,7 @@ void aws_iot_task(void *param) {
         
         ESP_LOGI(TAG, "Stack remaining for task '%s' is %d bytes", pcTaskGetTaskName(NULL), uxTaskGetStackHighWaterMark(NULL));
         vTaskDelay(1000 / portTICK_RATE_MS);
-        int tmpInt1 = temperature;                  // Get the integer (678).
-        float tmpFrac = temperature - tmpInt1;      // Get fraction (0.0123).
-        int tmpInt2 = trunc(tmpFrac * 100);
-        sprintf(cPayload, "{\"%s\" : \"%d\", \"temp\":\"%d.%02d\" }", "counter", i++, tmpInt1, tmpInt2);
+        sprintf(cPayload, "{\"%s\" : \"%d\", \"temp\":\"%.3f\" }", "counter", i++, temperature);
         paramsQOS0.payloadLen = strlen(cPayload);
         rc = aws_iot_mqtt_publish(&client, TOPIC, TOPIC_LEN, &paramsQOS0);
 
@@ -341,7 +338,7 @@ void app_main()
         err = nvs_flash_init();
     }
     ESP_ERROR_CHECK( err );
-
+    MPU6886_Init();
     initialise_wifi();
     xTaskCreatePinnedToCore(&aws_iot_task, "aws_iot_task", 9216, NULL, 5, NULL, 1);
 }
