@@ -29,6 +29,7 @@
 #include <unistd.h>
 #include <limits.h>
 #include <string.h>
+#include <math.h>
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -47,6 +48,7 @@
 #include "aws_iot_log.h"
 #include "aws_iot_version.h"
 #include "aws_iot_mqtt_client_interface.h"
+#include "mpu6886.h"
 
 static const char *TAG = "subpub";
 
@@ -161,6 +163,8 @@ void aws_iot_task(void *param) {
     char cPayload[100];
 
     int32_t i = 0;
+    float temperature = 0.0f;
+
 
     IoT_Error_t rc = FAILURE;
 
@@ -249,20 +253,14 @@ void aws_iot_task(void *param) {
         ESP_LOGE(TAG, "Unable to set Auto Reconnect to true - %d", rc);
         abort();
     }
-    ESP_LOGI(TAG, "Pre ACTION Registry");
     
     #define ACTION_TOPIC_LEN (strlen(CONFIG_AWS_EXAMPLE_CLIENT_ID)+9)
     #define TOPIC_LEN_S (strlen(CONFIG_AWS_EXAMPLE_CLIENT_ID)+12)
-    ESP_LOGI(TAG, "PRE prefill %d",ACTION_TOPIC_LEN);
-
+    
     char TOPIC_ACTION[ACTION_TOPIC_LEN];
-    ESP_LOGI(TAG, "PRE prefill S1");
     snprintf(TOPIC_ACTION,ACTION_TOPIC_LEN,"actions/%s",CONFIG_AWS_EXAMPLE_CLIENT_ID);
-    ESP_LOGI(TAG, "PRE prefill S2");
     const int TOPIC_ACTION_LEN = strlen(&TOPIC_ACTION);
 
-    ESP_LOGI(TAG, "Post ACTION Registry");
-    
     const char TOPIC[TOPIC_LEN_S];
     snprintf(TOPIC,TOPIC_LEN_S,"main_topic/%s",CONFIG_AWS_EXAMPLE_CLIENT_ID);
     const int TOPIC_LEN = strlen(TOPIC);
@@ -292,16 +290,17 @@ void aws_iot_task(void *param) {
             // If the client is attempting to reconnect we will skip the rest of the loop.
             continue;
         }
-
+        MPU6886_GetTempData(&temperature);
+        
         ESP_LOGI(TAG, "Stack remaining for task '%s' is %d bytes", pcTaskGetTaskName(NULL), uxTaskGetStackHighWaterMark(NULL));
         vTaskDelay(1000 / portTICK_RATE_MS);
-        sprintf(cPayload, "%s : %d ", "hello from ESP32 (QOS0)", i++);
+        int tmpInt1 = temperature;                  // Get the integer (678).
+        float tmpFrac = temperature - tmpInt1;      // Get fraction (0.0123).
+        int tmpInt2 = trunc(tmpFrac * 100);
+        sprintf(cPayload, "{\"%s\" : \"%d\", \"temp\":\"%d.%02d\" }", "counter", i++, tmpInt1, tmpInt2);
         paramsQOS0.payloadLen = strlen(cPayload);
         rc = aws_iot_mqtt_publish(&client, TOPIC, TOPIC_LEN, &paramsQOS0);
 
-        sprintf(cPayload, "%s : %d ", "hello from ESP32 (QOS1)", i++);
-        paramsQOS1.payloadLen = strlen(cPayload);
-        rc = aws_iot_mqtt_publish(&client, TOPIC, TOPIC_LEN, &paramsQOS1);
         if (rc == MQTT_REQUEST_TIMEOUT_ERROR) {
             ESP_LOGW(TAG, "QOS1 publish ack not received.");
             rc = SUCCESS;
