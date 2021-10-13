@@ -178,9 +178,11 @@ void aws_iot_task(void *param) {
     mqttInitParams.port = port;
 
 #if defined(CONFIG_EXAMPLE_EMBEDDED_CERTS)
+    ESP_LOGE(TAG, "Reading embedded certs..");
     mqttInitParams.pRootCALocation = (const char *)aws_root_ca_pem_start;
     mqttInitParams.pDeviceCertLocation = (const char *)certificate_pem_crt_start;
     mqttInitParams.pDevicePrivateKeyLocation = (const char *)private_pem_key_start;
+
 
 #elif defined(CONFIG_EXAMPLE_FILESYSTEM_CERTS)
     mqttInitParams.pRootCALocation = ROOT_CA_PATH;
@@ -190,7 +192,7 @@ void aws_iot_task(void *param) {
 
     mqttInitParams.mqttCommandTimeout_ms = 20000;
     mqttInitParams.tlsHandshakeTimeout_ms = 5000;
-    mqttInitParams.isSSLHostnameVerify = true;
+    mqttInitParams.isSSLHostnameVerify = false;
     mqttInitParams.disconnectHandler = disconnectCallbackHandler;
     mqttInitParams.disconnectHandlerData = NULL;
 
@@ -247,12 +249,19 @@ void aws_iot_task(void *param) {
         ESP_LOGE(TAG, "Unable to set Auto Reconnect to true - %d", rc);
         abort();
     }
+    #define ACTION_TOPIC_LEN (strlen(CONFIG_AWS_EXAMPLE_CLIENT_ID)+8)
+    #define TOPIC_LEN_S (strlen(CONFIG_AWS_EXAMPLE_CLIENT_ID)+12)
 
-    const char *TOPIC = "test_topic/esp32";
+    char TOPIC_ACTION[ACTION_TOPIC_LEN];
+    snprintf(TOPIC_ACTION,"actions/%s",ACTION_TOPIC_LEN,CONFIG_AWS_EXAMPLE_CLIENT_ID);
+    const int TOPIC_ACTION_LEN = strlen(TOPIC_ACTION);
+
+    const char *TOPIC[TOPIC_LEN_S];
+    snprintf(TOPIC,"main_topic/%s",TOPIC_LEN_S,CONFIG_AWS_EXAMPLE_CLIENT_ID);
     const int TOPIC_LEN = strlen(TOPIC);
 
-    ESP_LOGI(TAG, "Subscribing...");
-    rc = aws_iot_mqtt_subscribe(&client, TOPIC, TOPIC_LEN, QOS0, iot_subscribe_callback_handler, NULL);
+    ESP_LOGI(TAG, "Subscribing... to %s", TOPIC_ACTION);
+    rc = aws_iot_mqtt_subscribe(&client, TOPIC_ACTION, TOPIC_ACTION_LEN, QOS0, iot_subscribe_callback_handler, NULL);
     if(SUCCESS != rc) {
         ESP_LOGE(TAG, "Error subscribing : %d ", rc);
         abort();
